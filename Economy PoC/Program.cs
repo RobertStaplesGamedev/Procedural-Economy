@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Timers;
+using NUnit.Framework;
 
 namespace Economy_PoC
 {
@@ -12,6 +13,7 @@ namespace Economy_PoC
             Population islandPopulation;
             List<Need> popNeeds;
 
+            Commodity water;
             Commodity iron;
             Commodity ironbar;
             Commodity sword;
@@ -19,6 +21,7 @@ namespace Economy_PoC
             List<Ingredient> ironbarRecipe;
             List<Ingredient> swordRecipe;
 
+            Producer waterProd;
             Producer ironProd;
             Producer ironbarProd;
             Producer swordProd;
@@ -31,6 +34,7 @@ namespace Economy_PoC
             float timer = 0;
 
             //Assign all variables
+            water = new Commodity("Water");
             iron = new Commodity("Iron");
             ironbarRecipe = new List<Ingredient>();
             ironbarRecipe.Add(new Ingredient(iron, 4));
@@ -42,34 +46,32 @@ namespace Economy_PoC
 
             sword = new Commodity("Sword", swordRecipe);
 
+            waterProd = new Producer("Well Cartel", water, 0.2f);
             ironProd = new Producer("Iron mines", iron, 0.5f);
             ironbarProd = new Producer("Iron bar makers r us", ironbar, 1.5f);
             swordProd = new Producer("Swords are us", sword, 1.5f);
 
             trans = new Transporter("IronLogistics");
 
-            //TestCode
-            
-            //ironbarProd.inventory.Add(new Stock(iron, 1000));
-            //trans.inventory.Add(new Stock(iron, 4));
-            //trans.inventory.Add(new Stock(ironbar, 4));
-
             //List of Producers
             allProd = new List<Producer>();
+            allProd.Add(waterProd);
             allProd.Add(ironProd);
             allProd.Add(ironbarProd);
             allProd.Add(swordProd);
 
             //List of Commodities
             allCom = new List<Commodity>();
+            allCom.Add(water);
             allCom.Add(iron);
             allCom.Add(ironbar);
             allCom.Add(sword);
 
             popNeeds = new List<Need>();
             popNeeds.Add(new Need(sword, 1));
+            popNeeds.Add(new Need(water, 10));
 
-            islandPopulation = new Population(4, popNeeds, 10.00f);
+            islandPopulation = new Population(4, popNeeds, 15.00f);
             islandPopulation.inventory.Add(new Stock(sword, 10));
 
             //Sim Controller.
@@ -86,11 +88,10 @@ namespace Economy_PoC
                 Console.WriteLine("Growth Rate: " + islandPopulation.growth);
                 foreach(Stock stock in islandPopulation.inventory)
                 {
-                    Console.WriteLine(stock.commodity.name + ": " + stock.amount + "\n");
+                    Console.WriteLine(stock.commodity.name + ": " + stock.amount);
                 }
-                //Console.WriteLine("Population: " + islandPopulation.speed);
-                //Console.WriteLine("Population: " + Math.Round(islandPopulation.deltaSpeed, 2));
-                //Producers
+                Console.WriteLine();
+
                 foreach (Producer p in allProd)
                 {
                     Console.WriteLine(p.name);
@@ -137,36 +138,15 @@ namespace Economy_PoC
 
                     foreach (Producer p in allProd)
                     {
-                        bool produced = false;
                         if (c.name == p.commodity.name)
                         {
-                            if (Math.Round(p.deltaSpeed, 2) == Math.Round(p.speed, 2))
-                            {
-                                //Producer Code
-                                produced = p.Produce();
-                                if (produced)
-                                {
-                                    p.deltaSpeed = 0;
-                                }
-                            }
-                            else
-                            {
-                                p.deltaSpeed = p.deltaSpeed + 0.1f;
-                            }
-
+                            p.ProduceCheck();
                         }
-
                     }
                 }
-                if (Math.Round(islandPopulation.deltaSpeed, 2) == Math.Round(islandPopulation.speed, 2))
-                {
-                    islandPopulation.CalculateGrowth();
-                    islandPopulation.deltaSpeed = 0;
-                }
-                else
-                {
-                    islandPopulation.deltaSpeed = islandPopulation.deltaSpeed + 0.1f;
-                }
+
+                islandPopulation.CalculateGrowthAndPopulation();
+
                 System.Threading.Thread.Sleep(100);
                 Console.Clear();
             }
