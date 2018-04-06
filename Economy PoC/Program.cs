@@ -21,15 +21,23 @@ namespace Economy_PoC
             List<Ingredient> ironbarRecipe;
             List<Ingredient> swordRecipe;
 
+            Resource well;
+            Resource ironMountain;
+
             Producer waterProd;
             Producer ironProd;
             Producer ironbarProd;
             Producer swordProd;
 
-            Transporter trans;
+            Transporter waterTrans;
+            Transporter ironTrans;
+            Transporter ironbarTrans;
+            Transporter swordTrans;
 
+            List<Resource> allRes;
             List<Producer> allProd;
             List<Commodity> allCom;
+            List<Transporter> allTrans;
 
             float timer = 0;
 
@@ -39,6 +47,9 @@ namespace Economy_PoC
             ironbarRecipe = new List<Ingredient>();
             ironbarRecipe.Add(new Ingredient(iron, 4));
 
+            well = new Resource("Well", water, 50000);
+            ironMountain = new Resource("Iron Mountain", iron, 500);
+
             ironbar = new Commodity("Iron Bar", ironbarRecipe);
 
             swordRecipe = new List<Ingredient>();
@@ -46,12 +57,28 @@ namespace Economy_PoC
 
             sword = new Commodity("Sword", swordRecipe);
 
-            waterProd = new Producer("Well Cartel", water, 0.2f);
-            ironProd = new Producer("Iron mines", iron, 0.5f);
+            waterProd = new Producer("Well Cartel", water, 0.2f, well);
+            ironProd = new Producer("Iron mines", iron, 0.5f, ironMountain);
             ironbarProd = new Producer("Iron bar makers r us", ironbar, 1.5f);
             swordProd = new Producer("Swords are us", sword, 1.5f);
 
-            trans = new Transporter("IronLogistics");
+            popNeeds = new List<Need>();
+            popNeeds.Add(new Need(sword, 1));
+            popNeeds.Add(new Need(water, 10));
+
+            islandPopulation = new Population(4, popNeeds, 15.00f);
+            islandPopulation.inventory.Add(new Stock(sword, 10));
+
+            waterTrans = new Transporter("Water Cart", 0, waterProd, islandPopulation);
+            ironTrans = new Transporter("IronLogistics", 0, ironProd, ironbarProd);
+            ironbarTrans = new Transporter("Bar Movers", 0, ironbarProd, swordProd);
+            swordTrans = new Transporter("Sword Truckers", 0, swordProd, islandPopulation);
+
+            //List of Resources
+            allRes = new List<Resource>();
+            allRes.Add(well);
+            allRes.Add(ironMountain);
+
 
             //List of Producers
             allProd = new List<Producer>();
@@ -66,13 +93,13 @@ namespace Economy_PoC
             allCom.Add(iron);
             allCom.Add(ironbar);
             allCom.Add(sword);
-
-            popNeeds = new List<Need>();
-            popNeeds.Add(new Need(sword, 1));
-            popNeeds.Add(new Need(water, 10));
-
-            islandPopulation = new Population(4, popNeeds, 15.00f);
-            islandPopulation.inventory.Add(new Stock(sword, 10));
+            
+            //List of all the Transporters
+            allTrans = new List<Transporter>();
+            allTrans.Add(waterTrans);
+            allTrans.Add(ironTrans);
+            allTrans.Add(ironbarTrans);
+            allTrans.Add(swordTrans);
 
             //Sim Controller.
             string exit = "";
@@ -91,15 +118,18 @@ namespace Economy_PoC
                     Console.WriteLine(stock.commodity.name + ": " + stock.amount);
                 }
                 Console.WriteLine();
-
+                
                 foreach (Producer p in allProd)
                 {
                     Console.WriteLine(p.name);
-                    //Console.WriteLine(p.commodity.name + ": " + p.AmountProduced());
 
                     foreach(Stock i in p.inventory)
                     {
                         Console.WriteLine(i.commodity.name + ": " + i.amount);
+                    }
+                    if (p.resource != null)
+                    {
+                        Console.WriteLine(p.resource.name + ": " + p.resource.amount);
                     }
                     Console.WriteLine();
                 }
@@ -107,35 +137,35 @@ namespace Economy_PoC
                 foreach (Commodity c in allCom)
                 {
                     //Transporter Code
-                    foreach (Producer p in allProd)
+                    foreach (Producer producer in allProd)
                     {
-                        //Check for Pickup's
-                        if (c.name == p.commodity.name)
+                        foreach (Transporter transporter in allTrans)
                         {
-                            p.inventory = trans.Pickup(c, p.inventory);
-                        }
-                    }
-                    foreach (Producer p in allProd)
-                    {
-                        foreach (Ingredient i in p.commodity.ingredients)
-                        {
-                            //Check for Dropoff's
-                            if (c.name == i.commodity.name)
+                            //Check for Pickup's
+                            if (c.name == producer.commodity.name && producer.name ==  transporter.pickupProducer.name)
                             {
-                                //Check The producers inventory
-                                p.inventory = trans.Dropoff(c, p.inventory);
+                                producer.inventory = transporter.Pickup(c, producer.inventory);
+                            }
+                            foreach (Ingredient i in producer.commodity.ingredients)
+                            {
+                                //Check for Dropoff's
+                                if (c.name == i.commodity.name && transporter.dropoffProducer != null && producer.name ==  transporter.dropoffProducer.name)
+                                {
+                                    //Check The producers inventory
+                                    producer.inventory = transporter.Dropoff(c, producer.inventory);
+                                }
+                            }
+                            //Dropoff to population
+                            foreach (Need need in popNeeds)
+                            {
+                                if (need.commodity.name == c.name && transporter.dropoffPopulation != null)
+                                {
+                                    islandPopulation.inventory = transporter.Dropoff(c, islandPopulation.inventory);
+                                }
                             }
                         }
                     }
-                    //Dropoff to population
-                    foreach (Need need in popNeeds)
-                    {
-                        if (need.commodity.name == c.name)
-                        {
-                            islandPopulation.inventory = trans.Dropoff(c, islandPopulation.inventory);
-                        }
-                    }
-
+                    //Production code                  
                     foreach (Producer p in allProd)
                     {
                         if (c.name == p.commodity.name)
@@ -144,9 +174,10 @@ namespace Economy_PoC
                         }
                     }
                 }
-
+                //Calculate growth and consume population
                 islandPopulation.CalculateGrowthAndPopulation();
 
+                //Add timer
                 System.Threading.Thread.Sleep(100);
                 Console.Clear();
             }

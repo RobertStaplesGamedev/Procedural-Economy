@@ -8,20 +8,60 @@ namespace Economy_PoC
     {
         public string name { get; private set; }
         public List<Stock> inventory;
+        public float speed { get; private set; }
+        public float deltaSpeed;
+        private bool isTravellingToDestination;
+
+        public Producer pickupProducer  { get; private set; }
+        public Producer dropoffProducer  { get; private set; }
+
+        public Population dropoffPopulation  { get; private set; }
 
         public Transporter(string _name)
         {
             name = _name;
             inventory = new List<Stock>();
+            speed = 0;
+            isTravellingToDestination = true;
         }
+        public Transporter(string _name, float _speed)
+        {
+            name = _name;
+            inventory = new List<Stock>();
+            speed = _speed;
+            deltaSpeed = 0;
+            isTravellingToDestination = true;
+        }
+        public Transporter(string _name, float _speed, Producer _pickupProducer, Producer _dropoffProducer)
+        {
+            name = _name;
+            inventory = new List<Stock>();
+            speed = _speed;
+            deltaSpeed = 0;
+            isTravellingToDestination = true;
+            pickupProducer = _pickupProducer;
+            dropoffProducer = _dropoffProducer;
+        }
+        public Transporter(string _name, float _speed, Producer _pickupProducer, Population _dropoffPopulation)
+        {
+            name = _name;
+            inventory = new List<Stock>();
+            speed = _speed;
+            deltaSpeed = 0;
+            isTravellingToDestination = true;
+            pickupProducer = _pickupProducer;
+            dropoffPopulation = _dropoffPopulation;
+        }
+        
         public List<Stock> Pickup(Commodity PickupComm, List<Stock> custList)
         {
             List<Stock> newCustList = new List<Stock>();
             List<Stock> newInventoryList = new List<Stock>();
             bool foundInInventory = false;
 
+            
             //Check if the customer list has been initialised
-            if (custList.Count > 0)
+            if (custList.Count > 0 && TransporterLoctaion(true))
             {
                 //Start building the New customer list
                 foreach (Stock cusinventoryStocktock in custList)
@@ -77,7 +117,7 @@ namespace Economy_PoC
             List<Stock> newInventoryList = new List<Stock>();
             bool foundInCustList = false;
 
-            if (inventory.Count > 0)
+            if (inventory.Count > 0 && TransporterLoctaion(false))
             {
                 //Start building the New customer list
                 foreach (Stock inventoryStock in inventory)
@@ -143,6 +183,45 @@ namespace Economy_PoC
                     }
                 }
                 inventory = tempInv;
+            }
+        }
+        private bool TransporterLoctaion(bool isPickup)
+        {
+            //if speed = 0 delivery is instant and the transaction just happens
+            if (speed == 0)
+            {
+                return true;
+            }
+            //Starting position is 0 deltaspeed (at pickup)
+            else if(isPickup && Math.Round(deltaSpeed, 2) == 0)
+            {
+                isTravellingToDestination = true;
+                deltaSpeed += 0.01f;
+                return true;
+            }
+            //Traveling to dropoff
+            else if (isTravellingToDestination && Math.Round(deltaSpeed, 2) < Math.Round(speed, 2))
+            {
+                deltaSpeed += 0.01f;
+                return false;
+            }
+            //Ending posittion is deltaspeed = speed (dropoff)
+            else if (!isPickup && isTravellingToDestination && Math.Round(deltaSpeed, 2) == Math.Round(speed, 2))
+            {
+                deltaSpeed -= 0.01f;
+                isTravellingToDestination = false;
+                return true;
+            }
+            //Traveling from dropoff
+            else if (!isTravellingToDestination && Math.Round(deltaSpeed, 2) < Math.Round(speed, 2))
+            {
+                deltaSpeed -= 0.01f;
+                return false;
+            }
+            else
+            {
+                //Throw error
+                return false;
             }
         }
     }
