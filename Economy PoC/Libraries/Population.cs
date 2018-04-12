@@ -13,7 +13,9 @@ namespace Economy_PoC
         public float deltaPop;
 
         public List<Need> popNeeds;
-        public List<Need> popWants;
+        private List<Want> popWants;
+        private int wantCap;
+        private bool wantsAdded;
 
         public List<Stock> inventory;
         private List<Stock> tempInventory;
@@ -26,10 +28,12 @@ namespace Economy_PoC
             growth = 1.00f;
             inventory = new List<Stock>();
             deltaPop = 0;
+            wantsAdded = false;
         }
         public float CalculateGrowthAndPopulation()
         {
             growth = 1.00f;
+            float needsPercentage = 0;
             int[] populationNeedsCountArray = new int[2];
 
             //Starting populationgrowth is 100%
@@ -39,24 +43,22 @@ namespace Economy_PoC
             if (inventory.Count > 0)
             {
                 //Calculate the needs are being met
-                populationNeedsCountArray = CalculateNeeds(populationNeedsCountArray);
+                needsPercentage = CalculateNeeds(needsPercentage);
+
+                //if over 50% of the needs are met calculate wants for a multiplyer
+                if (needsPercentage >= 0.5f && wantsAdded)
+                {
+                    CalculateWants(needsPercentage);
+                }
 
                 //Calculate Growth Calculation
-                AdjustGrowth(populationNeedsCountArray[0], populationNeedsCountArray[1]); 
+                growth = (needsPercentage / 100); 
             }
             //If the inventory is empty growth is just 0.
             else
             {
                 growth = -1.00f;
             }
-            //if over 50% of the needs are met calculate wants for a multiplyer
-            if (growth > 0f)
-            {
-                //Check if wants are null
-                //Calculate wants
-                //If wants are met than population gets a growth multiplyer as they are happier
-            }
-            
             if (Math.Round(deltaSpeed, 2) == Math.Round(speed, 2))
             {
                 AdjustPopulation();
@@ -70,21 +72,46 @@ namespace Economy_PoC
             Cleanup();
             return growth;
         }
-        public void AddPopulationWants ()
+        public void AddPopulationWants (List<Want> populationWants, int wantsCap)
         {
-
+            popWants = populationWants;
+            wantCap = wantsCap;
+            wantsAdded = true;
         }
-        private int[] CalculateNeeds(int[] populationNeedsCountArray)
+        private float CalculateNeeds(float needsPercentage)
         {
             int populationNeedsCount = 0;
             int populationNeedsMetCount = 0;
 
+            
+            string lowestNeed = "";
+            int lowestNeedPercentge = -1;
+            int currentNeedsPercentage = 1;
+
             tempInventory = new List<Stock>();
             List<string> usedInventory = new List<string>();
+            bool hasfoundName = false;
 
+            //Find the lowest met need (in percentage)
             foreach (Need need in popNeeds)
             {
-                populationNeedsCount += (need.amount * size);
+                foreach (Stock stock in inventory)
+                {
+                    if (stock.commodity.name == need.commodity.name)
+                    {
+                        currentNeedsPercentage = (need.amount * size) / stock.amount;
+                        if (lowestNeedPercentge == -1 || lowestNeedPercentge < currentNeedsPercentage)
+                        {
+                            lowestNeed = need.commodity.name;
+                            lowestNeedPercentge = currentNeedsPercentage;
+                        }
+
+                    }
+                }
+            }
+            //Only calculate for that need
+            foreach (Need need in popNeeds)
+            {
                 foreach (Stock stock in inventory)
                 {
                     if (stock.commodity.name == need.commodity.name)
@@ -94,79 +121,87 @@ namespace Economy_PoC
                         {
                             tempInventory.Add(new Stock(stock.commodity, stock.amount - (need.amount * size)));
                         }
-                        populationNeedsMetCount += stock.amount;
-                    }
-                    // else if (stock.commodity.name != need.commodity.name && !usedInventory.Contains(stock.commodity.name))
-                    // {
-                    //     tempInventory.Add(stock);
-                    //     usedInventory.Add(stock.commodity.name);
-                    // }
-                }
-
-                foreach (Stock stock in inventory)
-                {
-                    foreach (Stock tempStock in tempInventory)
-                    {
-                        if (stock.commodity.name == tempStock.commodity.name && stock.commodity.name == need.commodity.name)
+                        else if (stock.amount > 0)
                         {
-
+                            tempInventory.Add(new Stock(stock.commodity, 0));
+                        }
+                        if (stock.commodity.name == lowestNeed)
+                        {
+                            populationNeedsCount += (need.amount * size);                            
+                            populationNeedsMetCount += stock.amount;
+                        }
+                    }
+                    else
+                    {
+                        foreach (string name in usedInventory)
+                        {
+                            if (stock.commodity.name == name)
+                            {
+                                hasfoundName = true;
+                            }
+                        }
+                        if (hasfoundName)
+                        {
+                            tempInventory.Add(stock);
+                            usedInventory.Add(stock.commodity.name);
+                            hasfoundName = false;
                         }
                     }
                 }
             }
 
-            populationNeedsCountArray[0] = populationNeedsCount;
-            populationNeedsCountArray[1] = populationNeedsMetCount;
-
-            return populationNeedsCountArray;
-        }
-        private void AdjustGrowth(int populationNeedsCount, int populationNeedsMetCount)
-        {
-            float needsPercentage = 0;
-
-                //populationNeedsCount = 50;
-                //populationNeedsMetCount = 26;
-
-                //Calculate Growth against needs
-                if (populationNeedsMetCount < populationNeedsCount)
+            if (populationNeedsMetCount < populationNeedsCount)
+            {
+                if (populationNeedsMetCount >= (populationNeedsCount / 2))
                 {
-                    if (populationNeedsMetCount >= (populationNeedsCount / 2))
+                    needsPercentage = ((populationNeedsMetCount - (populationNeedsCount / 2)) * 100) / (populationNeedsCount - (populationNeedsCount / 2));
+                    needsPercentage = needsPercentage - 100;
+                }
+                else
+                {
+                    needsPercentage = -100;
+                }
+            }
+            else if (populationNeedsMetCount >= populationNeedsCount && populationNeedsMetCount <= (populationNeedsCount * 2))
+            {
+                needsPercentage = ((populationNeedsMetCount - populationNeedsCount) * 100) / ((populationNeedsCount * 2) - populationNeedsCount);
+                
+            }
+            return needsPercentage;
+        }
+        private float CalculateWants(float wantsPercentage)
+        {
+            float popWantsMet = 0;
+            List<Stock> tempInventory2 =  new List<Stock>();
+
+
+            foreach(Want want in popWants)
+            {
+                foreach(Stock stock in inventory)
+                {
+                    if (want.commodity.name == stock.commodity.name)
                     {
-                        //needsPercentage = -(populationNeedsMetCount / populationNeedsCount);
-                        needsPercentage = ((populationNeedsMetCount - (populationNeedsCount / 2)) * 100) / (populationNeedsCount - (populationNeedsCount / 2));
-                        needsPercentage = (needsPercentage / 100);
-                        if (needsPercentage == 0)
+                        popWantsMet += (want.importance * stock.amount) / size;
+                        //Remove wants from the inventory
+                        if (stock.amount >= size)
                         {
-                            growth = -1.00f;
-                        }
-                        else
-                        {
-                            //growth = -(needsPercentage / 0.5f - 1);
-                            growth = (needsPercentage - 1);
+                            tempInventory.Add(new Stock(stock.commodity, stock.amount - size));
                         }
                     }
                     else
                     {
-                        growth = -1.00f;
-                    }
-                    growth = (float) Math.Round(growth, 2);
-                }
-                else if (populationNeedsMetCount >= populationNeedsCount)
-                {
-                    if (populationNeedsMetCount <= (populationNeedsCount * 2))
-                    {
-                        needsPercentage = ((populationNeedsMetCount - populationNeedsCount) * 100) / ((populationNeedsCount * 2) - populationNeedsCount);
-                        growth = needsPercentage / 100;
-                    }
-                    else 
-                    {
-                        growth = 1.00f;
+                        tempInventory.Add(stock);
                     }
                 }
-                else if (growth < -1.00)
-                {
-                    growth = -1.00f;
-                }
+            }
+
+            //**Calculate wants percentage
+
+            if (wantsPercentage > wantCap)
+            {
+                wantsPercentage = wantCap;
+            }
+            return wantsPercentage;
         }
         private void AdjustPopulation()
         {

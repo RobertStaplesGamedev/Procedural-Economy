@@ -12,6 +12,7 @@ namespace Economy_PoC
             //Declare Variables
             Population islandPopulation;
             List<Need> popNeeds;
+            List<Need> popWants;
 
             Commodity water;
             Commodity iron;
@@ -48,7 +49,7 @@ namespace Economy_PoC
             ironbarRecipe.Add(new Ingredient(iron, 4));
 
             well = new Resource("Well", water, 50000);
-            ironMountain = new Resource("Iron Mountain", iron, 500);
+            ironMountain = new Resource("Iron Mountain", iron, 5000);
 
             ironbar = new Commodity("Iron Bar", ironbarRecipe);
 
@@ -129,7 +130,7 @@ namespace Economy_PoC
                     }
                     if (p.resource != null)
                     {
-                        Console.WriteLine(p.resource.name + ": " + p.resource.amount);
+                        //Console.WriteLine(p.resource.name + ": " + p.resource.amount);
                     }
                     Console.WriteLine();
                 }

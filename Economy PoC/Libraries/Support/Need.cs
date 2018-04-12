@@ -16,8 +16,11 @@ namespace Economy_PoC
                 new NullReferenceException();
             }
 
+            
+
             commodity = _commodity;
             amount = _amount;
+            
         }
     }
 }

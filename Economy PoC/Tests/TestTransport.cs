@@ -14,10 +14,10 @@ namespace Economy_PoC
         Test 2 - Picking up a single item when there are many items in an inventory
         Test 3 - Dropoff an item to an empty inventory
         Test 4 - Dropoff an item to an inventory with items in it
-        **Test 5 - Dropoff an item to an inventory with items in it that arent the intended item
-        **Test 6 - Pickup Items from the Designated Producer
-        **Test 7 - Dropoff items to the Designated Producer
-        **Test 8 - Dropoff items to the designated population
+        Test 5 - Dropoff an item to an inventory with items in it that arent the intended item
+        Test 6 - Pickup Items from the Designated Producer
+        Test 7 - Dropoff items to the Designated Producer
+        Test 8 - Dropoff items to the designated population
          */
 
 
@@ -221,7 +221,6 @@ namespace Economy_PoC
             Commodity test1Comm = new Commodity("Test1");
             int test1Int = 4;
             Commodity test2Comm = new Commodity("Test2");
-            int test2Int = 3;
 
             Producer testProducer1 = new Producer("TestProducer1", test1Comm, 0.5f);
             Producer testProducer2 = new Producer("TestProducer2", test2Comm, 0.5f);
