@@ -12,12 +12,13 @@ namespace Economy_PoC
             //Declare Variables
             Population islandPopulation;
             List<Need> popNeeds;
-            List<Need> popWants;
+            List<Want> popWants;
 
             Commodity water;
             Commodity iron;
             Commodity ironbar;
             Commodity sword;
+            Commodity silk;
 
             List<Ingredient> ironbarRecipe;
             List<Ingredient> swordRecipe;
@@ -43,6 +44,7 @@ namespace Economy_PoC
             float timer = 0;
 
             //Assign all variables
+            silk = new Commodity("Silk");
             water = new Commodity("Water");
             iron = new Commodity("Iron");
             ironbarRecipe = new List<Ingredient>();
@@ -67,8 +69,14 @@ namespace Economy_PoC
             popNeeds.Add(new Need(sword, 1));
             popNeeds.Add(new Need(water, 10));
 
+            popWants = new List<Want>();
+            popWants.Add(new Want(silk, 0.5f));
+
             islandPopulation = new Population(4, popNeeds, 15.00f);
             islandPopulation.inventory.Add(new Stock(sword, 10));
+            islandPopulation.inventory.Add(new Stock(silk, 1000));
+
+            islandPopulation.AddPopulationWants(popWants, 2);
 
             waterTrans = new Transporter("Water Cart", 0, waterProd, islandPopulation);
             ironTrans = new Transporter("IronLogistics", 0, ironProd, ironbarProd);
