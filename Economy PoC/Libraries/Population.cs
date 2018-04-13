@@ -48,11 +48,12 @@ namespace Economy_PoC
                 //if over 50% of the needs are met calculate wants for a multiplyer
                 if (needsPercentage >= 0.5f && wantsAdded)
                 {
-                    CalculateWants(needsPercentage);
+                    needsPercentage = CalculateWants(needsPercentage);
                 }
 
                 //Calculate Growth Calculation
-                growth = (needsPercentage / 100); 
+                growth = (needsPercentage / 100);
+                growth = (float)Math.Round(growth, 2); 
             }
             //If the inventory is empty growth is just 0.
             else
@@ -85,12 +86,11 @@ namespace Economy_PoC
 
             
             string lowestNeed = "";
-            int lowestNeedPercentge = -1;
-            int currentNeedsPercentage = 1;
+            float lowestNeedPercentge = -1;
+            float currentNeedsPercentage = 1;
 
             tempInventory = new List<Stock>();
-            List<string> usedInventory = new List<string>();
-            bool hasfoundName = false;
+            List <string> usedInventory = new List<string>();
 
             //Find the lowest met need (in percentage)
             foreach (Need need in popNeeds)
@@ -99,8 +99,11 @@ namespace Economy_PoC
                 {
                     if (stock.commodity.name == need.commodity.name)
                     {
-                        currentNeedsPercentage = (need.amount * size) / stock.amount;
-                        if (lowestNeedPercentge == -1 || lowestNeedPercentge < currentNeedsPercentage)
+                        float tempVal = stock.amount;
+                        float tempVal2 = need.amount * size;
+
+                        currentNeedsPercentage = stock.amount / tempVal2;
+                        if (lowestNeedPercentge == -1 || lowestNeedPercentge > currentNeedsPercentage)
                         {
                             lowestNeed = need.commodity.name;
                             lowestNeedPercentge = currentNeedsPercentage;
@@ -120,10 +123,12 @@ namespace Economy_PoC
                         if (stock.amount >= (need.amount * size))
                         {
                             tempInventory.Add(new Stock(stock.commodity, stock.amount - (need.amount * size)));
+                            usedInventory.Add(stock.commodity.name);
                         }
                         else if (stock.amount > 0)
                         {
                             tempInventory.Add(new Stock(stock.commodity, 0));
+                            usedInventory.Add(stock.commodity.name);
                         }
                         if (stock.commodity.name == lowestNeed)
                         {
@@ -131,22 +136,14 @@ namespace Economy_PoC
                             populationNeedsMetCount += stock.amount;
                         }
                     }
-                    else
-                    {
-                        foreach (string name in usedInventory)
-                        {
-                            if (stock.commodity.name == name)
-                            {
-                                hasfoundName = true;
-                            }
-                        }
-                        if (hasfoundName)
-                        {
-                            tempInventory.Add(stock);
-                            usedInventory.Add(stock.commodity.name);
-                            hasfoundName = false;
-                        }
-                    }
+                }
+            }
+
+            foreach (Stock stock in inventory)
+            {
+                if (!usedInventory.Contains(stock.commodity.name))
+                {
+                    tempInventory.Add(stock);
                 }
             }
 
@@ -172,34 +169,41 @@ namespace Economy_PoC
         private float CalculateWants(float wantsPercentage)
         {
             float popWantsMet = 0;
-            List<Stock> tempInventory2 =  new List<Stock>();
 
+            List<Stock> wantInventory = new List<Stock>();
 
             foreach(Want want in popWants)
             {
-                foreach(Stock stock in inventory)
+                foreach(Stock stock in tempInventory)
                 {
                     if (want.commodity.name == stock.commodity.name)
                     {
-                        popWantsMet += (want.importance * stock.amount) / size;
                         //Remove wants from the inventory
                         if (stock.amount >= size)
                         {
-                            tempInventory.Add(new Stock(stock.commodity, stock.amount - size));
+                            wantInventory.Add(new Stock(stock.commodity, stock.amount - size));
+                            popWantsMet += want.importance;
+                        }
+                        else
+                        {
+                            popWantsMet += (want.importance * stock.amount) / size;
                         }
                     }
                     else
                     {
-                        tempInventory.Add(stock);
+                        wantInventory.Add(stock);
                     }
                 }
             }
 
-            //**Calculate wants percentage
+            tempInventory = wantInventory;
 
-            if (wantsPercentage > wantCap)
+            //**Calculate wants percentage
+            wantsPercentage += (popWantsMet * 100);
+
+            if (wantsPercentage > (wantCap * 100))
             {
-                wantsPercentage = wantCap;
+                wantsPercentage = (wantCap * 100);
             }
             return wantsPercentage;
         }

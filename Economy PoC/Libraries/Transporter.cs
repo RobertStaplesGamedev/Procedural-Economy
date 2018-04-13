@@ -99,7 +99,7 @@ namespace Economy_PoC
                             newCustList.Add(new Stock(cusinventoryStocktock.commodity, 0));
                         }
                     }
-                    //if iinventoryStock not matching just add the item to the new customer list
+                    //if inventoryStock not matching just add the item to the new customer list
                     else
                     {
                         newCustList.Add(cusinventoryStocktock);
